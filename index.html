@@ -21,10 +21,20 @@
         --color-primary-800: 226 76% 45%;
         --color-primary-900: 226 71% 39%;
       }
+      .dark {
+        --color-background: 240 6% 10%;
+        --color-foreground: 240 6% 98%;
+        --color-card: 240 4% 14%;
+        --color-card-foreground: 240 6% 98%;
+        --color-primary-50: 226 71% 15%;
+        --color-primary-100: 226 71% 20%;
+        --color-primary-200: 226 71% 30%;
+      }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {

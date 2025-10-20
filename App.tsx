@@ -8,6 +8,7 @@ import { generateRecipe } from './services/geminiService';
 import { ImageUploader } from './components/ImageUploader';
 import { translations, Language } from './utils/translations';
 import { LanguageIcon } from './components/common/Icons';
+import { ThemeSwitcher, Theme } from './components/ThemeSwitcher';
 
 type RecipeStyle = 'classic' | 'humorous' | 'kid-friendly' | 'in-a-hurry' | 'crazy-chef' | 'chef-special' | 'from-the-web';
 
@@ -31,6 +32,13 @@ const App: React.FC = () => {
       return storedLang as Language;
     }
     return 'ru';
+  });
+  const [theme, setTheme] = useState<Theme>(() => {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      return storedTheme;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   const t = translations[language];
@@ -60,6 +68,17 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('language', language);
   }, [language]);
+
+  // Apply theme and save to local storage
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
 
   const handleGenerateRecipe = async () => {
@@ -144,7 +163,8 @@ const App: React.FC = () => {
     <div className="bg-background min-h-screen font-sans text-foreground transition-colors duration-300">
       <main className="container mx-auto px-4 py-8 sm:py-12 max-w-4xl relative">
         
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <ThemeSwitcher theme={theme} setTheme={setTheme} />
             <button
               onClick={toggleLanguage}
               className="flex items-center gap-2 bg-card p-2 rounded-full shadow-lg border border-foreground/10 text-foreground/80 hover:bg-foreground/10"
