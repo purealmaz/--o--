@@ -8,7 +8,7 @@ export const Button: React.FC<ButtonProps> = ({ children, ...props }) => {
   return (
     <button
       {...props}
-      className="inline-flex items-center justify-center gap-2 px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg bg-primary-600 text-primary-foreground font-bold rounded-xl hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary/50 transition-all duration-300 ease-in-out disabled:bg-foreground/30 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none transform hover:-translate-y-0.5"
+      className="inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-bold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all duration-200 ease-in-out disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed shadow-lg hover:shadow-primary/30 disabled:shadow-none transform hover:-translate-y-px disabled:transform-none"
     >
       {children}
     </button>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BookmarkIcon, SpeakerWaveIcon, PlayIcon, PauseIcon, DownloadIcon } from './common/Icons';
+import { BookmarkIcon, SpeakerWaveIcon, PlayIcon, PauseIcon, DownloadIcon, ShareIcon } from './common/Icons';
 import { Spinner } from './common/Spinner';
 import { generateSpeechFromText } from '../services/geminiService';
 import { decode, decodeAudioData, createWavBlob } from '../utils/audioUtils';
@@ -21,6 +21,7 @@ export const RecipeDisplay: React.FC<RecipeDisplayProps> = ({ recipe, onSave, t,
   const [audioData, setAudioData] = useState<{ base64: string; buffer: AudioBuffer; } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -47,21 +48,21 @@ export const RecipeDisplay: React.FC<RecipeDisplayProps> = ({ recipe, onSave, t,
       .map((line, index) => {
         const trimmedLine = line.trim();
         if (trimmedLine.startsWith('### ')) {
-          return <h3 key={index} className="text-xl font-semibold mt-4 mb-2">{trimmedLine.substring(4)}</h3>;
+          return <h3 key={index}>{trimmedLine.substring(4)}</h3>;
         }
         if (trimmedLine.startsWith('## ')) {
-          return <h2 key={index} className="text-2xl font-bold mt-6 mb-3">{trimmedLine.substring(3)}</h2>;
+          return <h2 key={index}>{trimmedLine.substring(3)}</h2>;
         }
         if (trimmedLine.startsWith('# ')) {
-          return <h1 key={index} className="text-3xl font-extrabold mt-4 mb-4">{trimmedLine.substring(2)}</h1>;
+          return <h1 key={index}>{trimmedLine.substring(2)}</h1>;
         }
         if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
-          return <li key={index} className="ml-5 list-disc">{trimmedLine.substring(2)}</li>;
+          return <li key={index}>{trimmedLine.substring(2)}</li>;
         }
         if (trimmedLine === '') {
           return <br key={index} />;
         }
-        return <p key={index} className="leading-relaxed">{line}</p>;
+        return <p key={index}>{line}</p>;
       });
   };
 
@@ -120,6 +121,18 @@ export const RecipeDisplay: React.FC<RecipeDisplayProps> = ({ recipe, onSave, t,
     }
     return "recipe";
   };
+  
+  const getShareTitle = (recipeText: string): string => {
+    const lines = recipeText.split('\n');
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('# ')) {
+            return trimmedLine.substring(2).replace(/[*_]/g, '');
+        }
+        if(trimmedLine) return trimmedLine.replace(/[*_]/g, '');
+    }
+    return t.untitledRecipe;
+  };
 
 
   const handleDownload = () => {
@@ -136,28 +149,53 @@ export const RecipeDisplay: React.FC<RecipeDisplayProps> = ({ recipe, onSave, t,
     URL.revokeObjectURL(url);
   };
 
+  const handleShare = async () => {
+    const title = getShareTitle(recipe);
+    const textToShare = recipe;
 
-  const proseClasses = `prose max-w-none prose-headings:text-card-foreground prose-p:text-card-foreground/90 prose-li:text-card-foreground/90`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: textToShare,
+        });
+      } catch (error) {
+        console.error('Error sharing recipe:', error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(textToShare);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2500);
+      } catch (err) {
+        console.error('Failed to copy recipe to clipboard:', err);
+        alert('Failed to copy recipe.');
+      }
+    }
+  };
+
+
+  const proseClasses = `prose dark:prose-invert max-w-none prose-h1:font-black prose-h1:text-3xl prose-h2:font-bold prose-h2:text-2xl prose-h3:font-semibold prose-h3:text-xl prose-headings:text-card-foreground prose-p:text-card-foreground/90 prose-li:text-card-foreground/90 prose-li:my-1 prose-ul:list-disc prose-ol:list-decimal prose-strong:text-card-foreground`;
   
-  const actionButtonClasses = "inline-flex items-center gap-2 px-4 py-2 bg-primary-100/80 text-primary-800 font-semibold rounded-lg hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50";
-  const playerButtonClasses = "p-2 text-foreground/70 hover:text-primary-700 hover:bg-primary-100 rounded-full transition-colors disabled:opacity-50";
+  const actionButtonClasses = "inline-flex items-center justify-center gap-2 px-4 py-2 bg-muted text-muted-foreground font-semibold rounded-md hover:bg-border hover:text-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:opacity-50";
+  const playerButtonClasses = "p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-colors disabled:opacity-50";
 
 
   return (
-    <div className="bg-card p-6 sm:p-8 rounded-2xl shadow-lg border border-foreground/10 animate-fade-in space-y-4">
-      <div className={proseClasses}>
+    <div className="bg-card p-6 sm:p-8 rounded-lg shadow-lg border border-border animate-fade-in space-y-4">
+      <article className={proseClasses}>
         {formatRecipe(recipe)}
-      </div>
-      <div className="pt-4 border-t border-foreground/10">
-        {audioError && <p className="text-sm text-red-600 mb-2">{audioError}</p>}
-        <div className="flex flex-wrap items-center justify-end gap-3">
+      </article>
+      <div className="pt-4 border-t border-border">
+        {audioError && <p className="text-sm text-red-500 mb-2">{audioError}</p>}
+        <div className="flex flex-wrap items-center justify-end gap-2">
             {audioData && (
-                 <div className="flex items-center gap-2 bg-background p-1.5 rounded-full border border-foreground/10">
+                 <div className="flex items-center gap-1 bg-muted p-1 rounded-full border border-border mr-auto">
                      <button onClick={handlePlayPause} className={playerButtonClasses}>
-                         {isPlaying ? <PauseIcon className="w-6 h-6"/> : <PlayIcon className="w-6 h-6"/>}
+                         {isPlaying ? <PauseIcon className="w-5 h-5"/> : <PlayIcon className="w-5 h-5"/>}
                      </button>
                       <button onClick={handleDownload} className={playerButtonClasses}>
-                         <DownloadIcon className="w-6 h-6"/>
+                         <DownloadIcon className="w-5 h-5"/>
                      </button>
                  </div>
             )}
@@ -169,8 +207,19 @@ export const RecipeDisplay: React.FC<RecipeDisplayProps> = ({ recipe, onSave, t,
               {isGeneratingAudio ? <> <Spinner/> {t.voicing}... </> : <><SpeakerWaveIcon className="w-5 h-5" /> {t.readAloud}</>}
             </button>
             <button
-              onClick={onSave}
+              onClick={handleShare}
               className={actionButtonClasses}
+              disabled={copySuccess}
+            >
+              {copySuccess ? (
+                <>{t.copiedToClipboard}</>
+              ) : (
+                <><ShareIcon className="w-5 h-5" /> {t.shareRecipe}</>
+              )}
+            </button>
+            <button
+              onClick={onSave}
+              className={`${actionButtonClasses} bg-primary/10 text-primary hover:bg-primary/20`}
             >
               <BookmarkIcon className="w-5 h-5" />
               {t.saveRecipe}

@@ -103,21 +103,21 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       {!image && (
         <div
           onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-foreground/20 rounded-lg cursor-pointer hover:bg-foreground/5 transition-colors"
+          className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted transition-colors"
         >
-            <PhotoIcon className="w-12 h-12 text-foreground/30 mb-2"/>
-          <p className="text-foreground/80 font-semibold">{t.uploadPhoto}</p>
-          <p className="text-sm text-foreground/60">{t.dragAndDrop}</p>
+            <PhotoIcon className="w-10 h-10 text-muted-foreground mb-2"/>
+          <p className="text-foreground font-semibold text-sm">{t.uploadPhoto}</p>
+          <p className="text-xs text-muted-foreground">{t.dragAndDrop}</p>
         </div>
       )}
 
       {image && (
         <div className="space-y-4">
-          <div className="relative group w-full aspect-video rounded-lg overflow-hidden">
+          <div className="relative group w-full aspect-video rounded-lg overflow-hidden border border-border">
             <img src={image.url} alt={t.ingredientsPreview} className="w-full h-full object-cover" />
             <button
               onClick={handleRemoveImage}
-              className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+              className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
               aria-label={t.removeImage}
             >
               <XIcon className="w-5 h-5" />
@@ -126,7 +126,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-primary-foreground font-semibold rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:bg-foreground/20"
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors disabled:bg-muted disabled:text-muted-foreground"
           >
             {isAnalyzing ? (
               <>

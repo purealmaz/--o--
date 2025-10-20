@@ -16,7 +16,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ theme, setTheme })
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center justify-center bg-card p-2 rounded-full shadow-lg border border-foreground/10 text-foreground/80 hover:bg-foreground/10"
+      className="flex items-center justify-center bg-card p-2 rounded-md shadow-sm border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
       aria-label="Toggle dark mode"
     >
       {theme === 'light' ? 

@@ -5,6 +5,9 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Генератор Рецептов на базе Gemini</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
       :root {
         --color-background: 240 6% 98%;
@@ -13,22 +16,27 @@
         --color-card-foreground: 240 6% 10%;
         --color-primary: 226 71% 59%;
         --color-primary-foreground: 226 100% 98%;
-        --color-primary-50: 229 96% 96%;
-        --color-primary-100: 229 92% 91%;
-        --color-primary-200: 229 88% 84%;
-        --color-primary-600: 226 71% 59%;
-        --color-primary-700: 226 76% 52%;
-        --color-primary-800: 226 76% 45%;
-        --color-primary-900: 226 71% 39%;
+        --color-muted: 240 5% 96%;
+        --color-muted-foreground: 240 4% 46%;
+        --color-border: 240 6% 90%;
+        --color-input: 240 6% 90%;
+        --color-ring: 226 71% 59%;
       }
       .dark {
         --color-background: 240 6% 10%;
         --color-foreground: 240 6% 98%;
         --color-card: 240 4% 14%;
         --color-card-foreground: 240 6% 98%;
-        --color-primary-50: 226 71% 15%;
-        --color-primary-100: 226 71% 20%;
-        --color-primary-200: 226 71% 30%;
+        --color-muted: 240 4% 16%;
+        --color-muted-foreground: 240 5% 65%;
+        --color-border: 240 4% 20%;
+        --color-input: 240 4% 20%;
+        --color-ring: 226 71% 59%;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
     </style>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -37,7 +45,13 @@
         darkMode: 'class',
         theme: {
           extend: {
+             fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
             colors: {
+              border: 'hsl(var(--color-border) / <alpha-value>)',
+              input: 'hsl(var(--color-input) / <alpha-value>)',
+              ring: 'hsl(var(--color-ring) / <alpha-value>)',
               background: 'hsl(var(--color-background) / <alpha-value>)',
               foreground: 'hsl(var(--color-foreground) / <alpha-value>)',
               card: 'hsl(var(--color-card) / <alpha-value>)',
@@ -45,15 +59,20 @@
               primary: {
                 DEFAULT: 'hsl(var(--color-primary) / <alpha-value>)',
                 foreground: 'hsl(var(--color-primary-foreground) / <alpha-value>)',
-                50: 'hsl(var(--color-primary-50) / <alpha-value>)',
-                100: 'hsl(var(--color-primary-100) / <alpha-value>)',
-                200: 'hsl(var(--color-primary-200) / <alpha-value>)',
-                600: 'hsl(var(--color-primary-600) / <alpha-value>)',
-                700: 'hsl(var(--color-primary-700) / <alpha-value>)',
-                800: 'hsl(var(--color-primary-800) / <alpha-value>)',
-                900: 'hsl(var(--color-primary-900) / <alpha-value>)',
               },
-            }
+              muted: {
+                DEFAULT: 'hsl(var(--color-muted) / <alpha-value>)',
+                foreground: 'hsl(var(--color-muted-foreground) / <alpha-value>)',
+              },
+            },
+            borderRadius: {
+              lg: `1rem`,
+              md: `calc(1rem - 4px)`,
+              sm: `calc(1rem - 8px)`,
+            },
+             boxShadow: {
+              'lg': '0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07)',
+            },
           }
         }
       }

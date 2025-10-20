@@ -7,8 +7,10 @@ import { Spinner } from './components/common/Spinner';
 import { generateRecipe } from './services/geminiService';
 import { ImageUploader } from './components/ImageUploader';
 import { translations, Language } from './utils/translations';
-import { LanguageIcon } from './components/common/Icons';
-import { ThemeSwitcher, Theme } from './components/ThemeSwitcher';
+import { Theme } from './components/ThemeSwitcher';
+import { RecipeHistory } from './components/RecipeHistory';
+import { Header } from './components/Header';
+import { AuthModal } from './components/AuthModal';
 
 type RecipeStyle = 'classic' | 'humorous' | 'kid-friendly' | 'in-a-hurry' | 'crazy-chef' | 'chef-special' | 'from-the-web';
 
@@ -26,6 +28,14 @@ const App: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
+  const [recipeHistory, setRecipeHistory] = useState<SavedRecipe[]>([]);
+  
+  // Auth State
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalView, setAuthModalView] = useState<'login' | 'signup'>('login');
+
+
   const [language, setLanguage] = useState<Language>(() => {
     const storedLang = localStorage.getItem('language');
     if (storedLang === 'ru' || storedLang === 'en' || storedLang === 'lt') {
@@ -43,27 +53,59 @@ const App: React.FC = () => {
 
   const t = translations[language];
 
-  // Load saved recipes from local storage on mount
+  // Check for logged-in user on mount
   useEffect(() => {
-    try {
-      const storedRecipes = localStorage.getItem('savedRecipes');
-      if (storedRecipes) {
-        setSavedRecipes(JSON.parse(storedRecipes));
-      }
-    } catch (e) {
-      console.error("Failed to load recipes from local storage", e);
+    const user = localStorage.getItem('currentUser');
+    if (user) {
+      setCurrentUser(user);
     }
   }, []);
 
+  // Load recipes and history from local storage when user changes
+  useEffect(() => {
+    if (!currentUser) {
+      setSavedRecipes([]);
+      setRecipeHistory([]);
+      return;
+    };
+    try {
+      const storedRecipes = localStorage.getItem(`savedRecipes_${currentUser}`);
+      if (storedRecipes) {
+        setSavedRecipes(JSON.parse(storedRecipes));
+      } else {
+        setSavedRecipes([]);
+      }
+      const storedHistory = localStorage.getItem(`recipeHistory_${currentUser}`);
+      if (storedHistory) {
+        setRecipeHistory(JSON.parse(storedHistory));
+      } else {
+        setRecipeHistory([]);
+      }
+    } catch (e) {
+      console.error("Failed to load from local storage", e);
+    }
+  }, [currentUser]);
+
   // Save recipes to local storage whenever they change
   useEffect(() => {
+    if (!currentUser) return;
     try {
-      localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
+      localStorage.setItem(`savedRecipes_${currentUser}`, JSON.stringify(savedRecipes));
     } catch (e) {
       console.error("Failed to save recipes to local storage", e);
     }
-  }, [savedRecipes]);
+  }, [savedRecipes, currentUser]);
   
+  // Save history to local storage whenever it changes
+  useEffect(() => {
+    if (!currentUser) return;
+    try {
+        localStorage.setItem(`recipeHistory_${currentUser}`, JSON.stringify(recipeHistory));
+    } catch (e) {
+        console.error("Failed to save history to local storage", e);
+    }
+  }, [recipeHistory, currentUser]);
+
   // Save language to local storage
   useEffect(() => {
     localStorage.setItem('language', language);
@@ -88,6 +130,21 @@ const App: React.FC = () => {
     try {
       const recipe = await generateRecipe(ingredients, recipeStyle, language);
       setGeneratedRecipe(recipe);
+
+      if(currentUser) {
+        const title = extractTitle(recipe);
+        const newHistoryItem: SavedRecipe = {
+          id: Date.now(),
+          title,
+          recipe,
+        };
+        // Add to history, prevent duplicates based on content, and limit to 5
+        setRecipeHistory(prev => {
+          const withoutDuplicates = prev.filter(item => item.recipe !== recipe);
+          return [newHistoryItem, ...withoutDuplicates].slice(0, 5);
+        });
+      }
+
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -113,6 +170,11 @@ const App: React.FC = () => {
 
   const handleSaveRecipe = () => {
     if (generatedRecipe) {
+      if (!currentUser) {
+        alert(t.loginToSave);
+        openAuthModal('login');
+        return;
+      }
       const title = extractTitle(generatedRecipe);
       if (savedRecipes.some(r => r.recipe === generatedRecipe)) {
         alert(t.recipeAlreadySaved);
@@ -132,6 +194,10 @@ const App: React.FC = () => {
     setSavedRecipes(prev => prev.filter(r => r.id !== id));
   };
   
+  const handleDeleteFromHistory = (id: number) => {
+    setRecipeHistory(prev => prev.filter(r => r.id !== id));
+  };
+
   const handleViewRecipe = (recipe: string) => {
     setGeneratedRecipe(recipe);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -140,6 +206,16 @@ const App: React.FC = () => {
   const handleIngredientsIdentified = (newIngredients: string[]) => {
     const uniqueIngredients = new Set([...ingredients, ...newIngredients]);
     setIngredients(Array.from(uniqueIngredients));
+  };
+  
+  const openAuthModal = (view: 'login' | 'signup') => {
+    setAuthModalView(view);
+    setIsAuthModalOpen(true);
+  };
+  
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    setCurrentUser(null);
   };
 
   const isButtonDisabled = ingredients.length === 0 || isLoading || isAnalyzing;
@@ -151,46 +227,49 @@ const App: React.FC = () => {
         return 'ru'; // from 'lt'
     });
   };
-  
-  const getNextLanguageLabel = () => {
-    if (language === 'ru') return 'EN';
-    if (language === 'en') return 'LT';
-    return 'RU'; // from 'lt'
-  };
-
 
   return (
     <div className="bg-background min-h-screen font-sans text-foreground transition-colors duration-300">
-      <main className="container mx-auto px-4 py-8 sm:py-12 max-w-4xl relative">
-        
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-            <ThemeSwitcher theme={theme} setTheme={setTheme} />
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-2 bg-card p-2 rounded-full shadow-lg border border-foreground/10 text-foreground/80 hover:bg-foreground/10"
-              aria-label="Switch language"
-            >
-              <LanguageIcon className="w-5 h-5" />
-              <span className="font-semibold text-sm pr-1">{getNextLanguageLabel()}</span>
-            </button>
-        </div>
-        
-        <header className="text-center mb-8 sm:mb-12">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-primary-800">{t.appTitle}</h1>
-          <p className="mt-3 text-lg sm:text-xl text-foreground/80 max-w-2xl mx-auto">
+      
+      {isAuthModalOpen && (
+          <AuthModal 
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            initialView={authModalView}
+            setCurrentUser={setCurrentUser}
+            t={t}
+          />
+      )}
+
+      <Header 
+        theme={theme}
+        setTheme={setTheme}
+        language={language}
+        toggleLanguage={toggleLanguage}
+        currentUser={currentUser}
+        onLoginClick={() => openAuthModal('login')}
+        onSignupClick={() => openAuthModal('signup')}
+        onLogoutClick={handleLogout}
+        t={t}
+      />
+      
+      <main className="container mx-auto px-4 py-8 sm:py-12 max-w-4xl">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-primary">{t.appTitle}</h1>
+          <p className="mt-3 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
             {t.appSubtitle}
           </p>
-        </header>
+        </div>
 
         <div className="space-y-8">
-          <div className="bg-card p-6 sm:p-8 rounded-2xl shadow-lg border border-foreground/10">
-             <h2 className="text-2xl font-semibold text-card-foreground mb-4">{t.step1Title}</h2>
+          <div className="bg-card p-6 sm:p-8 rounded-lg shadow-lg border border-border">
+             <h2 className="text-2xl font-bold text-card-foreground mb-4">{t.step1Title}</h2>
              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-start">
                 <div className="md:col-span-3">
                     <IngredientInput ingredients={ingredients} setIngredients={setIngredients} t={t} />
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                    <p className="text-center text-sm text-foreground/60 uppercase font-semibold pb-1">{t.or}</p>
+                    <p className="text-center text-xs text-muted-foreground uppercase font-semibold pb-1">{t.or}</p>
                     <ImageUploader 
                         onIngredientsIdentified={handleIngredientsIdentified}
                         isAnalyzing={isAnalyzing}
@@ -204,17 +283,17 @@ const App: React.FC = () => {
           </div>
 
           {ingredients.length > 0 && (
-            <div className="bg-card p-6 sm:p-8 rounded-2xl shadow-lg border border-foreground/10 animate-fade-in">
-              <h2 className="text-2xl font-semibold text-card-foreground mb-4">{t.step2Title}</h2>
-              <div className="flex flex-wrap gap-3">
+            <div className="bg-card p-6 sm:p-8 rounded-lg shadow-lg border border-border animate-fade-in">
+              <h2 className="text-2xl font-bold text-card-foreground mb-4">{t.step2Title}</h2>
+              <div className="flex flex-wrap gap-2">
                 {(['classic', 'humorous', 'kid-friendly', 'in-a-hurry', 'crazy-chef', 'chef-special', 'from-the-web'] as RecipeStyle[]).map(style => (
                   <button 
                     key={style}
                     onClick={() => setRecipeStyle(style)}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    className={`px-4 py-2 rounded-md font-semibold transition-all duration-200 text-sm ${
                       recipeStyle === style 
-                      ? 'bg-primary-600 text-primary-foreground shadow' 
-                      : 'bg-primary-100/50 text-primary-800 hover:bg-primary-100'
+                      ? 'bg-primary text-primary-foreground shadow-md' 
+                      : 'bg-muted text-muted-foreground hover:bg-border hover:text-foreground'
                     }`}
                   >
                     {t[style]}
@@ -232,7 +311,7 @@ const App: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-lg" role="alert">
               <p className="font-bold">{t.errorTitle}</p>
               <p>{error}</p>
             </div>
@@ -240,7 +319,12 @@ const App: React.FC = () => {
           
           {generatedRecipe && <RecipeDisplay recipe={generatedRecipe} onSave={handleSaveRecipe} t={t} language={language} />}
 
-          <SavedRecipes recipes={savedRecipes} onView={handleViewRecipe} onDelete={handleDeleteRecipe} t={t} />
+          {currentUser && (
+            <>
+              <RecipeHistory history={recipeHistory} onView={handleViewRecipe} onDelete={handleDeleteFromHistory} t={t} />
+              <SavedRecipes recipes={savedRecipes} onView={handleViewRecipe} onDelete={handleDeleteRecipe} t={t} />
+            </>
+          )}
         </div>
       </main>
     </div>
